@@ -4,7 +4,10 @@
 
 #include "../include/Model.h"
 
-Model::Model(const std::string& model_filename) {
+Model::Model(const std::string& model_path ) {
+    
+    const fs::path path(model_path);
+    std::error_code ec; 
 
     this->status = TF_NewStatus();
     this->graph = TF_NewGraph();
@@ -12,25 +15,52 @@ Model::Model(const std::string& model_filename) {
     // Create the session.
     TF_SessionOptions* sess_opts = TF_NewSessionOptions();
 
-    this->session = TF_NewSession(this->graph, sess_opts, this->status);
-    TF_DeleteSessionOptions(sess_opts);
-
     // Check the status
     this->status_check(true);
+    
+    // Test if path is file (*.pb file, old format) or directory (tensorflow SavedModel format)
+    if (fs::is_directory(path, ec))
+    { 
+        // Tensorflow 2.0+ SavedModel format
 
-    // Create the graph
-    TF_Graph* g = this->graph;
+        const char* tags[] = {"serve"};
+        TF_Buffer* r_opts = TF_NewBufferFromString("",0);
+        TF_Buffer* meta_g = TF_NewBuffer();
+
+        this->session = TF_LoadSessionFromSavedModel(sess_opts, r_opts, model_path.c_str(), tags, 1, this->graph, meta_g, this->status);
+
+        TF_DeleteBuffer(r_opts);
+        TF_DeleteBuffer(meta_g);
+    }
+    if (ec) // Check folder errors
+    {
+        std::cerr << "Error in is_directory: " << ec.message();
+    }
+    if (fs::is_regular_file(path, ec))
+    {
+        // Old, *.pb file format
+
+        this->session = TF_NewSession(this->graph, sess_opts, this->status);
+        TF_DeleteSessionOptions(sess_opts);
+        
+        // Create the graph
+        TF_Graph* g = this->graph;
 
 
-    // Import the graph definition
-    TF_Buffer* def = read(model_filename);
-    this->error_check(def != nullptr, "An error occurred reading the model");
+        // Import the graph definition
+        TF_Buffer* def = read(model_path);
+        this->error_check(def != nullptr, "An error occurred reading the model");
 
-    TF_ImportGraphDefOptions* graph_opts = TF_NewImportGraphDefOptions();
-    TF_GraphImportGraphDef(g, def, graph_opts, this->status);
-    TF_DeleteImportGraphDefOptions(graph_opts);
-    TF_DeleteBuffer(def);
+        TF_ImportGraphDefOptions* graph_opts = TF_NewImportGraphDefOptions();
+        TF_GraphImportGraphDef(g, def, graph_opts, this->status);
+        TF_DeleteImportGraphDefOptions(graph_opts);
+        TF_DeleteBuffer(def);
 
+    }
+    if (ec) // Check file errors
+    {
+        std::cerr << "Error in is_regular_file: " << ec.message();
+    }
 
     this->status_check(true);
 }

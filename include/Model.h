@@ -11,10 +11,12 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <experimental/filesystem> // C++17
 #include <tuple>
 #include <tensorflow/c/c_api.h>
 #include "Tensor.h"
 
+namespace fs = std::experimental::filesystem;
 class Tensor;
 
 class Model {
