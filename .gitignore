@@ -35,5 +35,15 @@
 build
 examples/*/build
 
+# Model export folder
+model/
+
+# VS Code files
+*.json
+.vscode/
+
 # Libtensorflow
 libtensorflow
+
+# ipynb checkpoint folder
+.ipynb_checkpoints/

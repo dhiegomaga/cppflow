@@ -130,7 +130,7 @@ std::vector<T> Tensor::get_data() {
     this->error_check(this->flag != -1, "Tensor is not valid");
 
     // Check type
-    this->error_check(deduce_type<T>() == this->type, "Expected return type is different from Tensor type");
+    this->error_check(deduce_type<T>() == this->type, "Expected return type ("+std::to_string(deduce_type<T>())+") is different from Tensor type ("+std::to_string(this->type)+")");
 
     // Tensor is not empty
     this->error_check(this->flag != 0, "Tensor is empty");
