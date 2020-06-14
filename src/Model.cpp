@@ -62,13 +62,13 @@ Model::Model(const std::string& model_path, const std::vector<uint8_t>& config_o
     {
         std::cerr << "Error in is_regular_file: " << ec.message();
         TF_DeleteSessionOptions(sess_opts);
-        return -1;
+        exit(-1);
     } 
     else
     {
         std::cerr << "Could not open file/folder [unknown error]";
         TF_DeleteSessionOptions(sess_opts);
-        return -1;
+        exit(-1);
     }
 
     TF_DeleteSessionOptions(sess_opts);
