@@ -4,7 +4,7 @@
 
 #include "../include/Model.h"
 
-Model::Model(const std::string& model_path ) {
+Model::Model(const std::string& model_path, const std::vector<uint8_t>& config_options) {
     
     const fs::path path(model_path);
     std::error_code ec; 
@@ -14,6 +14,12 @@ Model::Model(const std::string& model_path ) {
 
     // Create the session.
     TF_SessionOptions* sess_opts = TF_NewSessionOptions();
+
+    if (!config_options.empty())
+    {
+        TF_SetConfig(sess_opts, static_cast<const void*>(config_options.data()), config_options.size(), this->status);
+        this->status_check(true);
+    }
 
     // Check the status
     this->status_check(true);
@@ -32,16 +38,11 @@ Model::Model(const std::string& model_path ) {
         TF_DeleteBuffer(r_opts);
         TF_DeleteBuffer(meta_g);
     }
-    if (ec) // Check folder errors
-    {
-        std::cerr << "Error in is_directory: " << ec.message();
-    }
-    if (fs::is_regular_file(path, ec))
+    else if (fs::is_regular_file(path, ec))
     {
         // Old, *.pb file format
 
         this->session = TF_NewSession(this->graph, sess_opts, this->status);
-        TF_DeleteSessionOptions(sess_opts);
         
         // Create the graph
         TF_Graph* g = this->graph;
@@ -56,12 +57,21 @@ Model::Model(const std::string& model_path ) {
         TF_DeleteImportGraphDefOptions(graph_opts);
         TF_DeleteBuffer(def);
 
-    }
-    if (ec) // Check file errors
+    } 
+    else if (ec) // Check file errors
     {
         std::cerr << "Error in is_regular_file: " << ec.message();
+        TF_DeleteSessionOptions(sess_opts);
+        return -1;
+    } 
+    else
+    {
+        std::cerr << "Could not open file/folder [unknown error]";
+        TF_DeleteSessionOptions(sess_opts);
+        return -1;
     }
 
+    TF_DeleteSessionOptions(sess_opts);
     this->status_check(true);
 }
 
